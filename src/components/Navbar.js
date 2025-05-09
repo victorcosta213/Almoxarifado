@@ -11,7 +11,15 @@ export default function Navbar() {
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-4 shadow-sm">
       <Link className="navbar-brand fw-bold" to="/">📦 CRT-03 Estoque</Link>
 
-      <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <button
+        className="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
         <span className="navbar-toggler-icon"></span>
       </button>
 
@@ -32,7 +40,6 @@ export default function Navbar() {
           <li className="nav-item">
             <Link className={isActive('/dashboard')} to="/dashboard">📊 Dashboard</Link>
           </li>
-
         </ul>
       </div>
     </nav>
