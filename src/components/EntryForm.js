@@ -1,4 +1,3 @@
-// src/components/EntryForm.js
 import React, { useState } from 'react';
 
 export default function EntryForm({ onSubmit, modo, itens }) {
@@ -65,6 +64,8 @@ export default function EntryForm({ onSubmit, modo, itens }) {
         <option value="LIMPEZA">Limpeza</option>
         <option value="ESCRITORIO">Escritório</option>
         <option value="CONSUMO">Consumo</option>
+        <option value="BRINDES">Brindes</option>
+        <option value="SEGURANCA">Segurança</option>
       </select>
 
       <input
@@ -98,8 +99,9 @@ export default function EntryForm({ onSubmit, modo, itens }) {
         required
       >
         <option value="">Selecione a Unidade</option>
-        <option value="unidade">Unidade</option>
-        <option value="caixa">Caixa</option>
+        <option value="UNIDADE">Unidade</option>
+        <option value="CAIXA">Caixa</option>
+        <option value="PACOTES">Pacotes</option>
       </select>
 
       <button className="btn btn-success">Registrar Entrada</button>
