@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 
 export default function Dashboard() {
-  const [data, setData] = useState([]);
+  const [itens, setItens] = useState([]);
   const [totalItens, setTotalItens] = useState(0);
   const [totalEstoque, setTotalEstoque] = useState(0);
   const [porModalidade, setPorModalidade] = useState([]);
@@ -15,16 +15,25 @@ export default function Dashboard() {
   useEffect(() => {
     const carregarDados = async () => {
       const snapshot = await getDocs(collection(db, 'estoque'));
-      const itens = snapshot.docs.map(doc => doc.data());
-      setData(itens);
+      const itensObtidos = snapshot.docs.map(doc => doc.data());
+      setItens(itensObtidos);
 
-      setTotalItens(itens.length);
-      setTotalEstoque(itens.reduce((acc, item) => acc + (item.total_estoque || 0), 0));
+      setTotalItens(itensObtidos.length);
+      setTotalEstoque(itensObtidos.reduce((acc, item) => acc + (item.total_estoque || 0), 0));
+
+      const normalizarModalidade = (texto) =>
+        texto
+          .toString()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim()
+          .toUpperCase();
 
       const modalidadeMap = {};
-      itens.forEach(item => {
+      itensObtidos.forEach(item => {
         if (item.modalidade) {
-          modalidadeMap[item.modalidade] = (modalidadeMap[item.modalidade] || 0) + (item.total_estoque || 0);
+          const chave = normalizarModalidade(item.modalidade);
+          modalidadeMap[chave] = (modalidadeMap[chave] || 0) + (item.total_estoque || 0);
         }
       });
 
@@ -38,6 +47,23 @@ export default function Dashboard() {
 
     carregarDados();
   }, []);
+
+  const totalEscritorio = itens.filter(item => {
+    const modalidadeNormalizada = item.modalidade
+      ? item.modalidade.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase()
+      : "";
+        return modalidadeNormalizada === "ESCRITORIO";
+      }).length;
+
+      const totalUnidadesEscritorio = itens.reduce((acc, item) => {
+      const modalidadeNormalizada = item.modalidade
+        ? item.modalidade.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase()
+        : "";
+      return modalidadeNormalizada === "ESCRITORIO"
+        ? acc + (item.total_estoque || 0)
+        : acc;
+    }, 0);
+
 
   return (
     <div>
@@ -56,6 +82,12 @@ export default function Dashboard() {
             <div className="card text-bg-success p-3 shadow-sm">
               <h5>Unidades em Estoque</h5>
               <h3>{totalEstoque}</h3>
+            </div>
+          </div>
+          <div className="col-md-4">
+            <div className="card text-bg-warning p-3 shadow-sm">
+              <h5>Itens de Escritório</h5>
+              <h3>{totalEscritorio}</h3>
             </div>
           </div>
         </div>
