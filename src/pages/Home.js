@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { db } from '../services/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import InventoryTable from '../components/InventoryTable';
@@ -45,11 +46,14 @@ export default function Home() {
     return datas.length > 0 ? new Date(Math.max(...datas)) : null;
   };
 
+  const normalizar = (texto) =>
+    texto?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase();
+
   const inventarioFiltrado = data.filter(item => {
     const ultimaData = getUltimaData(item);
 
-    const passaTermo = item.descricao.toLowerCase().includes(filtro.termo.toLowerCase());
-    const passaModalidade = !filtro.modalidade || item.modalidade === filtro.modalidade;
+    const passaTermo = item.descricao?.toLowerCase().includes(filtro.termo.toLowerCase());
+    const passaModalidade = !filtro.modalidade || normalizar(item.modalidade) === normalizar(filtro.modalidade);
     const passaCidade = !filtro.cidade || (item.cidade && item.cidade.toLowerCase().includes(filtro.cidade.toLowerCase()));
 
     const passaData =
@@ -73,6 +77,26 @@ export default function Home() {
       pdf.save('relatorio_estoque.pdf');
     });
   };
+
+ 
+
+const exportarExcel = () => {
+  const dadosParaExportar = inventarioFiltrado.map(item => ({
+    Descrição: item.descricao,
+    Modalidade: item.modalidade,
+    Unidade: item.unidade,
+    QuantidadeTotal: item.total_estoque,
+    Cidade: item.cidade || '',
+    ÚltimaData: getUltimaData(item)?.toLocaleDateString('pt-BR') || ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Estoque');
+
+      XLSX.writeFile(wb, 'relatorio_estoque.xlsx');
+    };
+
 
   return (
     <div>
@@ -99,6 +123,8 @@ export default function Home() {
               <option value="LIMPEZA">Limpeza</option>
               <option value="ESCRITORIO">Escritório</option>
               <option value="CONSUMO">Consumo</option>
+              <option value="BRINDES">Brindes</option>
+              <option value="SEGURANCA">Segurança</option>
             </select>
           </div>
 
@@ -116,6 +142,7 @@ export default function Home() {
               📄 Exportar PDF
             </button>
           </div>
+          
 
           <div className="col-md-3 mt-3">
             <label>Data Inicial:</label>
