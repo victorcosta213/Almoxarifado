@@ -10,24 +10,43 @@ export default function EntryForm({ onSubmit, modo, itens }) {
     unidade: '',
   });
 
+  const [suggestions, setSuggestions] = useState([]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     const updatedForm = { ...form, [name]: value };
 
-    if (modo === 'editar' && name === 'descricao') {
-      const itemSelecionado = itens.find(item => item.descricao === value);
-      if (itemSelecionado) {
-        updatedForm.modalidade = itemSelecionado.modalidade || '';
-        updatedForm.unidade = itemSelecionado.unidade || '';
-      }
+    if (name === 'descricao') {
+      const filtered = itens.filter(item =>
+        item.descricao.toLowerCase().includes(value.toLowerCase())
+      );
+      setSuggestions(value.length > 0 ? filtered : []);
     }
 
     setForm(updatedForm);
   };
 
+  const handleSelectSuggestion = (item) => {
+    setForm({
+      ...form,
+      descricao: item.descricao,
+      modalidade: item.modalidade || '',
+      unidade: item.unidade || '',
+    });
+    setSuggestions([]);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(form);
+    setForm({
+      descricao: '',
+      modalidade: '',
+      data_entrada: '',
+      responsavel_entrada: '',
+      quantidade_entrada: '',
+      unidade: '',
+    });
   };
 
   return (
@@ -36,22 +55,31 @@ export default function EntryForm({ onSubmit, modo, itens }) {
         {modo === 'novo' ? 'Criar Novo Item' : 'Adicionar Entrada em Item Existente'}
       </h3>
 
-      {modo === 'editar' ? (
-        <select className="form-control mb-3" name="descricao" onChange={handleChange} required>
-          <option value="">Selecione um item existente</option>
-          {itens.map((item, idx) => (
-            <option key={idx} value={item.descricao}>{item.descricao}</option>
-          ))}
-        </select>
-      ) : (
+      <div className="mb-3 position-relative">
         <input
-          className="form-control mb-3"
+          className="form-control"
           name="descricao"
-          placeholder="Descrição"
+          placeholder="Descrição do item"
+          value={form.descricao}
           onChange={handleChange}
+          autoComplete="off"
           required
         />
-      )}
+        {suggestions.length > 0 && (
+          <ul className="list-group position-absolute w-100" style={{ zIndex: 1000 }}>
+            {suggestions.map((item, idx) => (
+              <li
+                key={idx}
+                className="list-group-item list-group-item-action"
+                onClick={() => handleSelectSuggestion(item)}
+                style={{ cursor: 'pointer' }}
+              >
+                {item.descricao}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <select
         className="form-control mb-3"
@@ -72,6 +100,7 @@ export default function EntryForm({ onSubmit, modo, itens }) {
         className="form-control mb-3"
         name="data_entrada"
         type="date"
+        value={form.data_entrada}
         onChange={handleChange}
         required
       />
@@ -79,6 +108,7 @@ export default function EntryForm({ onSubmit, modo, itens }) {
         className="form-control mb-3"
         name="responsavel_entrada"
         placeholder="Responsável"
+        value={form.responsavel_entrada}
         onChange={handleChange}
         required
       />
@@ -87,6 +117,7 @@ export default function EntryForm({ onSubmit, modo, itens }) {
         name="quantidade_entrada"
         type="number"
         placeholder="Quantidade"
+        value={form.quantidade_entrada}
         onChange={handleChange}
         required
       />
