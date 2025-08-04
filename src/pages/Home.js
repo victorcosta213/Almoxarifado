@@ -98,20 +98,48 @@ export default function Home() {
     });
   };
 
-  const exportarExcel = () => {
-    const dadosParaExportar = inventarioFiltrado.map(item => ({
-      Descrição: item.descricao,
-      Modalidade: item.modalidade,
-      Unidade: item.unidade,
-      QuantidadeTotal: item.total_estoque,
-      Cidade: item.cidade || '',
-      ÚltimaData: getUltimaData(item)?.toLocaleDateString('pt-BR') || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Estoque');
-    XLSX.writeFile(wb, 'relatorio_estoque.xlsx');
-  };
+const exportarExcel = () => {
+  const dadosParaExportar = inventarioFiltrado.map(item => {
+    const formatarEntradas = (item.entradas || [])
+      .map(e => `• ${e.data} - ${e.responsavel} - +${e.quantidade}`)
+      .join('\n');
+
+    const formatarSaidas = (item.saidas || [])
+      .map(s => `• ${s.data} - ${s.responsavel} - -${s.quantidade} (${s.cidade || ''})`)
+      .join('\n');
+
+    const ultimaData = getUltimaData(item)?.toLocaleDateString('pt-BR') || '';
+
+    return {
+      'Descrição': item.descricao,
+      'Modalidade': item.modalidade,
+      'Unidade': item.unidade,
+      'Quantidade Total': item.total_estoque,
+      'Cidade': item.cidade || '',
+      'Última Movimentação': ultimaData,
+      'Entradas': formatarEntradas,
+      'Saídas': formatarSaidas
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
+
+  // Estilo: largura automática de colunas
+  const colWidths = Object.keys(dadosParaExportar[0] || {}).map(key => ({
+    wch: Math.max(
+      key.length,
+      ...dadosParaExportar.map(row => (row[key] || '').toString().length)
+    ) + 5
+  }));
+  ws['!cols'] = colWidths;
+
+  // Gerar e baixar
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Estoque Detalhado');
+  XLSX.writeFile(wb, 'estoque_detalhado.xlsx');
+};
+
+
 
   return (
     <div>
@@ -185,6 +213,9 @@ export default function Home() {
           <div className="col-md-3">
             <button className="btn btn-outline-secondary w-100" onClick={exportarPDF}>
               📄 Exportar PDF
+            </button>
+            <button className="btn btn-outline-secondary w-100" onClick={exportarExcel}>
+              📊 Exportar Excel
             </button>
           </div>
           <div className="col-md-3 mt-3">
