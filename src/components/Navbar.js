@@ -7,26 +7,6 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path ? 'nav-link active' : 'nav-link';
 
-  const exportarExcel = () => {
-  const area = document.getElementById('area-estoque');
-  if (!area) return;
-
-  const linhas = [...area.querySelectorAll('.card')].map(card => {
-    const descricao = card.querySelector('h5')?.innerText || '';
-    const detalhes = [...card.querySelectorAll('p')].map(p => p.innerText);
-    return {
-      Descrição: descricao,
-      Detalhes: detalhes.join(' | ')
-    };
-  });
-
-  const ws = XLSX.utils.json_to_sheet(linhas);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Estoque');
-  XLSX.writeFile(wb, 'relatorio_estoque.xlsx');
-};
-
-
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-4 shadow-sm">
       <Link className="navbar-brand fw-bold" to="/">📦 CRT-03 Estoque</Link>
@@ -60,13 +40,6 @@ export default function Navbar() {
           <li className="nav-item">
             <Link className={isActive('/dashboard')} to="/dashboard">📊 Dashboard</Link>
           </li>
-          <button
-            onClick={exportarExcel}
-            className="btn btn-sm bg-dark text-white border-0"
-          >
-            📊 Exportar Planilha
-          </button>
-
         </ul>
       </div>
     </nav>
