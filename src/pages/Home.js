@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { db } from '../services/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, enableNetwork } from 'firebase/firestore';
 import InventoryTable from '../components/InventoryTable';
 import Navbar from '../components/Navbar';
 import jsPDF from 'jspdf';
@@ -25,6 +25,8 @@ export default function Home() {
     setAlertaDesativado(alertaAtivo === 'false');
 
     const fetchInventory = async () => {
+      await enableNetwork(db); 
+
       const snapshot = await getDocs(collection(db, 'estoque'));
       const items = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -98,48 +100,44 @@ export default function Home() {
     });
   };
 
-const exportarExcel = () => {
-  const dadosParaExportar = inventarioFiltrado.map(item => {
-    const formatarEntradas = (item.entradas || [])
-      .map(e => `• ${e.data} - ${e.responsavel} - +${e.quantidade}`)
-      .join('\n');
+  const exportarExcel = () => {
+    const dadosParaExportar = inventarioFiltrado.map(item => {
+      const formatarEntradas = (item.entradas || [])
+        .map(e => `• ${e.data} - ${e.responsavel} - +${e.quantidade}`)
+        .join('\n');
 
-    const formatarSaidas = (item.saidas || [])
-      .map(s => `• ${s.data} - ${s.responsavel} - -${s.quantidade} (${s.cidade || ''})`)
-      .join('\n');
+      const formatarSaidas = (item.saidas || [])
+        .map(s => `• ${s.data} - ${s.responsavel} - -${s.quantidade} (${s.cidade || ''})`)
+        .join('\n');
 
-    const ultimaData = getUltimaData(item)?.toLocaleDateString('pt-BR') || '';
+      const ultimaData = getUltimaData(item)?.toLocaleDateString('pt-BR') || '';
 
-    return {
-      'Descrição': item.descricao,
-      'Modalidade': item.modalidade,
-      'Unidade': item.unidade,
-      'Quantidade Total': item.total_estoque,
-      'Cidade': item.cidade || '',
-      'Última Movimentação': ultimaData,
-      'Entradas': formatarEntradas,
-      'Saídas': formatarSaidas
-    };
-  });
+      return {
+        'Descrição': item.descricao,
+        'Modalidade': item.modalidade,
+        'Unidade': item.unidade,
+        'Quantidade Total': item.total_estoque,
+        'Cidade': item.cidade || '',
+        'Última Movimentação': ultimaData,
+        'Entradas': formatarEntradas,
+        'Saídas': formatarSaidas
+      };
+    });
 
-  const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
+    const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
 
-  // Estilo: largura automática de colunas
-  const colWidths = Object.keys(dadosParaExportar[0] || {}).map(key => ({
-    wch: Math.max(
-      key.length,
-      ...dadosParaExportar.map(row => (row[key] || '').toString().length)
-    ) + 5
-  }));
-  ws['!cols'] = colWidths;
+    const colWidths = Object.keys(dadosParaExportar[0] || {}).map(key => ({
+      wch: Math.max(
+        key.length,
+        ...dadosParaExportar.map(row => (row[key] || '').toString().length)
+      ) + 5
+    }));
+    ws['!cols'] = colWidths;
 
-  // Gerar e baixar
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Estoque Detalhado');
-  XLSX.writeFile(wb, 'estoque_detalhado.xlsx');
-};
-
-
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Estoque Detalhado');
+    XLSX.writeFile(wb, 'estoque_detalhado.xlsx');
+  };
 
   return (
     <div>
@@ -154,7 +152,6 @@ const exportarExcel = () => {
           </div>
         )}
 
-        {/* Modal bonito de alerta */}
         {showModal && (
           <div className="modal show d-block fade" tabIndex="-1" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
             <div className="modal-dialog modal-dialog-centered">
@@ -177,19 +174,14 @@ const exportarExcel = () => {
                   </ul>
                 </div>
                 <div className="modal-footer d-flex justify-content-between">
-                  <button className="btn btn-secondary" onClick={handleFecharModal}>
-                    ❌ Fechar
-                  </button>
-                  <button className="btn btn-danger" onClick={handleDesativarAlerta}>
-                    🚫 Desativar Alerta
-                  </button>
+                  <button className="btn btn-secondary" onClick={handleFecharModal}>❌ Fechar</button>
+                  <button className="btn btn-danger" onClick={handleDesativarAlerta}>🚫 Desativar Alerta</button>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* filtros e botões */}
         <div className="row my-3">
           <div className="col-md-3">
             <input type="text" className="form-control" placeholder="Buscar por nome..."
@@ -211,12 +203,8 @@ const exportarExcel = () => {
               onChange={(e) => setFiltro({ ...filtro, cidade: e.target.value })} />
           </div>
           <div className="col-md-3">
-            <button className="btn btn-outline-secondary w-100" onClick={exportarPDF}>
-              📄 Exportar PDF
-            </button>
-            <button className="btn btn-outline-secondary w-100" onClick={exportarExcel}>
-              📊 Exportar Excel
-            </button>
+            <button className="btn btn-outline-secondary w-100" onClick={exportarPDF}>📄 Exportar PDF</button>
+            <button className="btn btn-outline-secondary w-100" onClick={exportarExcel}>📊 Exportar Excel</button>
           </div>
           <div className="col-md-3 mt-3">
             <label>Data Inicial:</label>
