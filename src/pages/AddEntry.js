@@ -1,7 +1,6 @@
-// src/pages/AddEntry.js
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/firebase';
-import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, runTransaction, doc } from 'firebase/firestore';
 import EntryForm from '../components/EntryForm';
 import Navbar from '../components/Navbar';
 
@@ -34,15 +33,27 @@ export default function AddEntry() {
     };
 
     if (modo === 'editar' && match) {
-      const data = match.data();
-      const novoEstoque = parseInt(data.total_estoque || 0) + novaQtd;
-      const entradas = Array.isArray(data.entradas) ? [...data.entradas, novaEntrada] : [novaEntrada];
+      try {
+        await runTransaction(db, async (transaction) => {
+          const docRef = doc(db, 'estoque', match.id);
+          const docSnap = await transaction.get(docRef);
+          if (!docSnap.exists()) throw "Documento não existe";
 
-      await updateDoc(doc(db, 'estoque', match.id), {
-        total_estoque: novoEstoque,
-        entradas: entradas,
-      });
-      alert('Entrada adicionada ao item existente!');
+          const data = docSnap.data();
+          const estoqueAtual = parseInt(data.total_estoque || 0);
+          const entradas = Array.isArray(data.entradas) ? data.entradas : [];
+
+          const novoEstoque = estoqueAtual + novaQtd;
+
+          transaction.update(docRef, {
+            total_estoque: novoEstoque,
+            entradas: [...entradas, novaEntrada]
+          });
+        });
+        alert('Entrada adicionada com sucesso!');
+      } catch (e) {
+        alert('Erro ao adicionar entrada: ' + e);
+      }
     } else if (modo === 'novo') {
       await addDoc(collection(db, 'estoque'), {
         ...form,
