@@ -1,11 +1,18 @@
 import React from 'react';
-import * as XLSX from 'xlsx';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // certifique-se de que isso está correto
 
 export default function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const isActive = (path) => location.pathname === path ? 'nav-link active' : 'nav-link';
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-4 shadow-sm">
@@ -39,6 +46,15 @@ export default function Navbar() {
           </li>
           <li className="nav-item">
             <Link className={isActive('/dashboard')} to="/dashboard">📊 Dashboard</Link>
+          </li>
+          <li className="nav-item">
+            <button
+              onClick={handleLogout}
+              className="btn btn-outline-light ms-3"
+              style={{ border: 'none' }}
+            >
+              🚪 Sair
+            </button>
           </li>
         </ul>
       </div>

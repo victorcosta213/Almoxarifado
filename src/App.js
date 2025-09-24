@@ -1,21 +1,28 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import AddEntry from './pages/AddEntry';
-import AddExit from './pages/AddExit';
-import Importar from './pages/Importar';
-import Dashboard from './pages/Dashboard';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import AddExit from "./pages/AddExit";
+import AddEntry from "./pages/AddEntry";
+import { AuthProvider } from "./context/AuthContext";
+import PrivateRoute from "./components/PrivateRoute";
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/entrada" element={<AddEntry />} />
-        <Route path="/saida" element={<AddExit />} />
-        <Route path="/importar" element={<Importar />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={
+            <PrivateRoute><Home /></PrivateRoute>
+          } />
+          <Route path="/entrada" element={
+            <PrivateRoute><AddEntry /></PrivateRoute>
+          } />
+          <Route path="/saida" element={
+            <PrivateRoute><AddExit /></PrivateRoute>
+          } />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
