@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import { db } from '../services/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer
 } from 'recharts';
+import { normalizeText, withCalculatedStock } from '../utils/stock';
 
 export default function Dashboard() {
   const [itens, setItens] = useState([]);
@@ -13,98 +14,85 @@ export default function Dashboard() {
   const [porModalidade, setPorModalidade] = useState([]);
 
   useEffect(() => {
-    const carregarDados = async () => {
-      const snapshot = await getDocs(collection(db, 'estoque'));
-      const itensObtidos = snapshot.docs.map(doc => doc.data());
+    const unsubscribe = onSnapshot(collection(db, 'estoque'), (snapshot) => {
+      const itensObtidos = snapshot.docs.map((doc) => withCalculatedStock(doc.data()));
       setItens(itensObtidos);
 
       setTotalItens(itensObtidos.length);
       setTotalEstoque(itensObtidos.reduce((acc, item) => acc + (item.total_estoque || 0), 0));
 
-      const normalizarModalidade = (texto) =>
-        texto
-          .toString()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .trim()
-          .toUpperCase();
-
       const modalidadeMap = {};
-      itensObtidos.forEach(item => {
+      itensObtidos.forEach((item) => {
         if (item.modalidade) {
-          const chave = normalizarModalidade(item.modalidade);
+          const chave = normalizeText(item.modalidade);
           modalidadeMap[chave] = (modalidadeMap[chave] || 0) + (item.total_estoque || 0);
         }
       });
 
       const modalidadeData = Object.entries(modalidadeMap).map(([key, value]) => ({
         modalidade: key,
-        estoque: value
+        estoque: value,
       }));
 
       setPorModalidade(modalidadeData);
-    };
+    });
 
-    carregarDados();
+    return () => unsubscribe();
   }, []);
 
-  const totalEscritorio = itens.filter(item => {
-    const modalidadeNormalizada = item.modalidade
-      ? item.modalidade.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase()
-      : "";
-        return modalidadeNormalizada === "ESCRITORIO";
-      }).length;
-
-      const totalUnidadesEscritorio = itens.reduce((acc, item) => {
-      const modalidadeNormalizada = item.modalidade
-        ? item.modalidade.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase()
-        : "";
-      return modalidadeNormalizada === "ESCRITORIO"
-        ? acc + (item.total_estoque || 0)
-        : acc;
-    }, 0);
-
+  const totalUnidadesEscritorio = itens.reduce((acc, item) => {
+    const modalidadeNormalizada = normalizeText(item.modalidade);
+    return modalidadeNormalizada === "ESCRITORIO"
+      ? acc + (item.total_estoque || 0)
+      : acc;
+  }, 0);
 
   return (
     <div>
       <Navbar />
-      <div className="container mt-4">
-        <h2 className="mb-4">📊 Dashboard de Estoque</h2>
+      <main className="app-page">
+        <div className="container">
+          <div className="page-header">
+            <div>
+              <div className="page-eyebrow">Indicadores</div>
+              <h1 className="page-title">Dashboard de estoque</h1>
+              <p className="page-subtitle">Resumo consolidado dos quantitativos cadastrados.</p>
+            </div>
+          </div>
 
-        <div className="row mb-4">
-          <div className="col-md-4">
-            <div className="card text-bg-primary p-3 shadow-sm">
-              <h5>Total de Itens</h5>
-              <h3>{totalItens}</h3>
+          <section className="stats-grid">
+            <div className="surface-panel stat-card">
+              <div className="stat-label">Total de itens</div>
+              <div className="stat-value">{totalItens}</div>
             </div>
-          </div>
-          <div className="col-md-4">
-            <div className="card text-bg-success p-3 shadow-sm">
-              <h5>Unidades em Estoque</h5>
-              <h3>{totalEstoque}</h3>
+            <div className="surface-panel stat-card">
+              <div className="stat-label">Unidades em estoque</div>
+              <div className="stat-value">{totalEstoque}</div>
             </div>
-          </div>
-          <div className="col-md-4">
-            <div className="card text-bg-warning p-3 shadow-sm">
-              <h5>Itens de Escritório</h5>
-              <h3>{totalEscritorio}</h3>
+            <div className="surface-panel stat-card">
+              <div className="stat-label">Unidades de escritório</div>
+              <div className="stat-value">{totalUnidadesEscritorio}</div>
             </div>
-          </div>
-        </div>
+            <div className="surface-panel stat-card">
+              <div className="stat-label">Modalidades</div>
+              <div className="stat-value">{porModalidade.length}</div>
+            </div>
+          </section>
 
-        <div className="card p-3 mb-4 shadow-sm">
-          <h5>Estoque por Modalidade</h5>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={porModalidade}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="modalidade" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="estoque" fill="#0d6efd" />
-            </BarChart>
-          </ResponsiveContainer>
+          <section className="surface-panel chart-panel">
+            <h2>Estoque por modalidade</h2>
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={porModalidade}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="modalidade" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="estoque" fill="#1f5fbf" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

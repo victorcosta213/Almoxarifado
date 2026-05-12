@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { normalizeDescription } from '../utils/stock';
 
 export default function EntryForm({ onSubmit, modo, itens }) {
   const [form, setForm] = useState({
@@ -17,8 +18,8 @@ export default function EntryForm({ onSubmit, modo, itens }) {
     const updatedForm = { ...form, [name]: value };
 
     if (name === 'descricao') {
-      const filtered = itens.filter(item =>
-        item.descricao.toLowerCase().includes(value.toLowerCase())
+      const filtered = itens.filter((item) =>
+        normalizeDescription(item.descricao).includes(normalizeDescription(value))
       );
       setSuggestions(value.length > 0 ? filtered : []);
     }
@@ -36,9 +37,9 @@ export default function EntryForm({ onSubmit, modo, itens }) {
     setSuggestions([]);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(form);
+    await onSubmit(form);
     setForm({
       descricao: '',
       modalidade: '',
@@ -50,7 +51,7 @@ export default function EntryForm({ onSubmit, modo, itens }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card shadow p-4 mt-4">
+    <form onSubmit={handleSubmit} className="surface-panel p-4 mt-3">
       <h3 className="mb-4">
         {modo === 'novo' ? 'Criar Novo Item' : 'Adicionar Entrada em Item Existente'}
       </h3>
@@ -59,7 +60,7 @@ export default function EntryForm({ onSubmit, modo, itens }) {
         <input
           className="form-control"
           name="descricao"
-          placeholder="Descrição do item"
+          placeholder="Descricao do item"
           value={form.descricao}
           onChange={handleChange}
           autoComplete="off"
@@ -90,10 +91,10 @@ export default function EntryForm({ onSubmit, modo, itens }) {
       >
         <option value="">Selecione a Modalidade</option>
         <option value="LIMPEZA">Limpeza</option>
-        <option value="ESCRITORIO">Escritório</option>
+        <option value="ESCRITORIO">Escritorio</option>
         <option value="CONSUMO">Consumo</option>
         <option value="BRINDES">Brindes</option>
-        <option value="SEGURANCA">Segurança</option>
+        <option value="SEGURANCA">Seguranca</option>
       </select>
 
       <input
@@ -107,7 +108,7 @@ export default function EntryForm({ onSubmit, modo, itens }) {
       <input
         className="form-control mb-3"
         name="responsavel_entrada"
-        placeholder="Responsável"
+        placeholder="Responsavel"
         value={form.responsavel_entrada}
         onChange={handleChange}
         required

@@ -1,7 +1,7 @@
-// src/components/ExitForm.js
-import React, { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import React, { useEffect, useMemo, useState } from 'react';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { normalizeDescription, toQuantity, withCalculatedStock } from '../utils/stock';
 
 export default function ExitForm({ onSubmit }) {
   const [form, setForm] = useState({
@@ -17,51 +17,89 @@ export default function ExitForm({ onSubmit }) {
   const [itemSelecionado, setItemSelecionado] = useState(null);
 
   useEffect(() => {
-    const carregarItens = async () => {
-      const snapshot = await getDocs(collection(db, 'estoque'));
-      const itensFormatados = snapshot.docs.map(doc => ({
+    const unsubscribe = onSnapshot(collection(db, 'estoque'), (snapshot) => {
+      const itensFormatados = snapshot.docs.map((doc) => withCalculatedStock({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
       setItens(itensFormatados);
-    };
-    carregarItens();
+    });
+
+    return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!form.descricao) {
+      setItemSelecionado(null);
+      return;
+    }
+
+    const itemAtualizado = itens.find(
+      (item) => normalizeDescription(item.descricao) === normalizeDescription(form.descricao)
+    );
+
+    setItemSelecionado(itemAtualizado || null);
+  }, [form.descricao, itens]);
+
+  const quantidadeSaida = toQuantity(form.quantidade_saida);
+  const saldoAtual = itemSelecionado?.total_estoque ?? 0;
+  const saldoPrevisto = saldoAtual - quantidadeSaida;
+  const saidaInvalida = quantidadeSaida > 0 && saldoPrevisto < 0;
+
+  const ultimaMovimentacao = useMemo(() => {
+    if (!itemSelecionado) return null;
+
+    const movimentos = [
+      ...(itemSelecionado.entradas || []).map((entrada) => ({ ...entrada, tipo: 'Entrada' })),
+      ...(itemSelecionado.saidas || []).map((saida) => ({ ...saida, tipo: 'Saida' })),
+    ].filter((movimento) => movimento.data);
+
+    return movimentos.sort((a, b) => new Date(b.data) - new Date(a.data))[0] || null;
+  }, [itemSelecionado]);
+
+  const atualizarSugestoes = (value) => {
+    const filtered = itens.filter((item) =>
+      normalizeDescription(item.descricao).includes(normalizeDescription(value))
+    );
+    setSuggestions(value ? filtered : []);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+
+    setForm((prev) => ({ ...prev, [name]: value }));
 
     if (name === 'descricao') {
-      const filtered = itens.filter(item =>
-        item.descricao.toLowerCase().includes(value.toLowerCase())
-      );
-      setSuggestions(value ? filtered : []);
-
-      const exactItem = itens.find(i => i.descricao.toLowerCase() === value.toLowerCase());
-      setItemSelecionado(exactItem || null);
+      atualizarSugestoes(value);
     }
   };
 
   const handleSelectSuggestion = (item) => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
-      descricao: item.descricao
+      descricao: item.descricao,
     }));
     setItemSelecionado(item);
     setSuggestions([]);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(form);
+    const sucesso = await onSubmit(form);
+
+    if (sucesso) {
+      setForm((prev) => ({
+        ...prev,
+        quantidade_saida: '',
+        cidade: '',
+      }));
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card shadow p-4 mt-4">
-      <h3 className="mb-4">Registrar Saída</h3>
+    <form onSubmit={handleSubmit} className="surface-panel p-4 mt-3">
+      <h3 className="mb-4">Registrar Saida</h3>
 
-      {/* Input de busca com sugestões */}
       <div className="mb-3 position-relative">
         <input
           className="form-control"
@@ -73,10 +111,10 @@ export default function ExitForm({ onSubmit }) {
           required
         />
         {suggestions.length > 0 && (
-          <ul className="list-group position-absolute w-100" style={{ zIndex: 1000, maxHeight: '150px', overflowY: 'auto' }}>
-            {suggestions.map((item, idx) => (
+          <ul className="list-group position-absolute w-100" style={{ zIndex: 1000, maxHeight: '180px', overflowY: 'auto' }}>
+            {suggestions.map((item) => (
               <li
-                key={idx}
+                key={item.id}
                 className="list-group-item list-group-item-action"
                 onClick={() => handleSelectSuggestion(item)}
                 style={{ cursor: 'pointer' }}
@@ -89,12 +127,42 @@ export default function ExitForm({ onSubmit }) {
       </div>
 
       {itemSelecionado && (
-        <div className="alert alert-info">
-          <strong>Informações do item:</strong><br />
-          Modalidade: {itemSelecionado.modalidade}<br />
-          Unidade: {itemSelecionado.unidade}<br />
-          Estoque atual: {itemSelecionado.total_estoque}
-        </div>
+        <section className="selected-item-panel mb-3" aria-label="Informacoes do item">
+          <div className="selected-item-header">
+            <div>
+              <span className="selected-item-label">Item selecionado</span>
+              <h4>{itemSelecionado.descricao}</h4>
+            </div>
+            <span className={saldoAtual <= 5 ? 'selected-stock selected-stock-danger' : 'selected-stock'}>
+              {saldoAtual}
+            </span>
+          </div>
+
+          <div className="selected-item-grid">
+            <div>
+              <span>Modalidade</span>
+              <strong>{itemSelecionado.modalidade || '-'}</strong>
+            </div>
+            <div>
+              <span>Unidade</span>
+              <strong>{itemSelecionado.unidade || '-'}</strong>
+            </div>
+            <div>
+              <span>Saldo atual</span>
+              <strong>{saldoAtual}</strong>
+            </div>
+            <div className={saidaInvalida ? 'selected-warning' : ''}>
+              <span>Saldo apos retirada</span>
+              <strong>{quantidadeSaida > 0 ? saldoPrevisto : saldoAtual}</strong>
+            </div>
+          </div>
+
+          {ultimaMovimentacao && (
+            <p className="selected-item-footnote">
+              Ultima movimentação: {ultimaMovimentacao.tipo} em {ultimaMovimentacao.data}
+            </p>
+          )}
+        </section>
       )}
 
       <input
@@ -108,20 +176,26 @@ export default function ExitForm({ onSubmit }) {
       <input
         className="form-control mb-3"
         name="responsavel_saida"
-        placeholder="Responsável"
+        placeholder="Responsavel"
         value={form.responsavel_saida}
         onChange={handleChange}
         required
       />
       <input
-        className="form-control mb-3"
+        className={`form-control mb-3 ${saidaInvalida ? 'is-invalid' : ''}`}
         name="quantidade_saida"
         type="number"
+        min="1"
         placeholder="Quantidade"
         value={form.quantidade_saida}
         onChange={handleChange}
         required
       />
+      {saidaInvalida && (
+        <div className="invalid-feedback d-block mb-3">
+          A quantidade informada e maior que o saldo disponivel.
+        </div>
+      )}
       <input
         className="form-control mb-4"
         name="cidade"
@@ -131,7 +205,7 @@ export default function ExitForm({ onSubmit }) {
         required
       />
 
-      <button className="btn btn-danger">Registrar Saída</button>
+      <button className="btn btn-danger" disabled={saidaInvalida}>Registrar Saida</button>
     </form>
   );
 }

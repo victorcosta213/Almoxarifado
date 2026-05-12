@@ -1,68 +1,160 @@
-.card {
-    border-radius: 1rem;
-    overflow: hidden;
-    transition: transform 0.2s ease;
+.inventory-card {
+  background: #ffffff;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  box-shadow: var(--app-shadow);
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.inventory-card-header {
+  align-items: flex-start;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid var(--app-border);
+  display: flex;
+  gap: 42px;
+  justify-content: space-between;
+  min-height: 92px;
+  padding: 18px;
+}
+
+.inventory-card-header h5 {
+  color: var(--app-text);
+  font-size: 1.03rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0 0 6px;
+  padding-right: 12px;
+}
+
+.inventory-card-header small {
+  color: var(--app-muted);
+  display: block;
+  font-weight: 650;
+}
+
+.inventory-delete {
+  background: #ffffff;
+  height: 30px;
+  line-height: 1;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 30px;
+  z-index: 1;
+}
+
+.stock-pill {
+  align-items: center;
+  background: #e8f1ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  color: #1d4ed8;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1rem;
+  font-weight: 850;
+  justify-content: center;
+  margin-top: 28px;
+  min-width: 48px;
+  padding: 6px 12px;
+}
+
+.stock-pill-danger {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.inventory-card-body {
+  padding: 18px;
+}
+
+.inventory-card-body h6 {
+  color: var(--app-text);
+  font-size: 0.86rem;
+  font-weight: 800;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.movement-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.movement-item {
+  align-items: center;
+  background: var(--app-surface-soft);
+  border: 1px solid var(--app-border);
+  border-radius: 7px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 8px 10px;
+}
+
+.movement-info {
+  color: #344054;
+  font-size: 0.92rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.movement-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.movement-in {
+  color: var(--app-success);
+}
+
+.movement-out {
+  color: var(--app-danger);
+}
+
+.empty-movement {
+  background: var(--app-surface-soft);
+  border: 1px dashed var(--app-border);
+  border-radius: 7px;
+  color: var(--app-muted);
+  margin: 0 0 14px;
+  padding: 12px;
+}
+
+.modal-form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 680px) {
+  .inventory-card-header {
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 48px;
   }
-  
-  .card:hover {
-    transform: scale(1.02);
+
+  .stock-pill {
+    margin-top: 0;
   }
-  
-  .card-header {
-    padding: 1rem;
-    font-weight: bold;
-    font-size: 1.1rem;
+
+  .movement-item {
+    align-items: stretch;
+    flex-direction: column;
   }
-  
-  .card-body {
-    background-color: #f8f9fa;
-    padding: 1rem 1.25rem;
-  }
-  
-  .card-body ul {
-    max-height: 200px;
-    overflow-y: auto;
-  }
-  
-  .list-group-item {
-    font-size: 0.95rem;
-    display: flex;
+
+  .movement-actions {
     justify-content: space-between;
-    align-items: center;
+    width: 100%;
   }
-  
-  .list-group-item strong {
-    font-weight: 600;
-    color: #212529;
-  }
-  
-  h6 {
-    margin-top: 1rem;
-    font-weight: bold;
-  }
-  
-  @media (max-width: 768px) {
-    .card {
-      margin-left: 1rem;
-      margin-right: 1rem;
-    }
-  
-    .card-header {
-      font-size: 1rem;
-    }
-  
-    .card-body {
-      font-size: 0.9rem;
-    }
-  
-    .list-group-item {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-    }
-  
-    .list-group-item strong {
-      align-self: flex-end;
-    }
-  }
-  
+}
